@@ -30,3 +30,7 @@ Der Login vergleicht das eingegebene Passwort mit `password_verify` gegen diesen
 2. Lade `credentials.php` (basierend auf der Beispiel-Datei) in diesen Ordner hoch und setze die Rechte auf `600`.
 3. Öffne im KAS (Kundenadministrationssystem) unter *Domain -> Einstellungen* die Umgebungsvariablen und trage `CREDENTIALS_FILE=/www/htdocs/w0123456/secure-config/credentials.php` ein.
 4. Leere ggf. den OPCache oder starte PHP-FPM neu, damit die neue Variable greift.
+
+## Fehlermeldungen für lokale Entwicklung aktivieren
+
+Im Produktivbetrieb bleiben PHP-Warnungen und -Notices verborgen, damit keine Serverdetails nach außen gelangen. Für die lokale Entwicklung kannst du die Ausgabe detaillierter Fehlermeldungen aktivieren, indem du in deiner nicht öffentlich zugänglichen Konfiguration (z. B. `.env`, Hosting-Panel oder `config/credentials.php`) die Variable `APP_DEBUG=1` setzt. Entferne oder setze den Wert auf `0`, bevor du die Anwendung auf einen geteilten Host hochlädst.

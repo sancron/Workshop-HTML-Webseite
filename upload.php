@@ -1,6 +1,17 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+$debugValue = $_SERVER['APP_DEBUG'] ?? getenv('APP_DEBUG');
+$debugEnabled = false;
+
+if ($debugValue !== false && $debugValue !== null) {
+    $debugEnabled = filter_var($debugValue, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
+}
+
+if ($debugEnabled) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+} else {
+    ini_set('display_errors', '0');
+}
 session_start();
 
 $adminPasswordHash = '';
