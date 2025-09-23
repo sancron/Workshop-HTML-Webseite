@@ -3,11 +3,37 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
-$password = 'YourSuperSecretPassword';
+// Load environment variables from a local .env file if present.
+$envPath = __DIR__ . '/.env';
+if (is_readable($envPath)) {
+    $envLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($envLines as $line) {
+        $line = trim($line);
+        if ($line === '' || strpos($line, '#') === 0) {
+            continue;
+        }
 
-if (isset($_POST['password']) && $_POST['password'] === $password) {
-    $_SESSION['authenticated'] = true;
-    $_SESSION['is_admin'] = true;
+        [$name, $value] = array_map('trim', explode('=', $line, 2) + ['', '']);
+        if ($name === '') {
+            continue;
+        }
+
+        $value = trim($value, "\"' ");
+        putenv("{$name}={$value}");
+        $_ENV[$name] = $value;
+    }
+}
+
+$adminPasswordHash = getenv('ADMIN_PASSWORD_HASH') ?: ($_ENV['ADMIN_PASSWORD_HASH'] ?? '');
+$loginError = '';
+
+if (isset($_POST['password'])) {
+    if ($adminPasswordHash && password_verify($_POST['password'], $adminPasswordHash)) {
+        $_SESSION['authenticated'] = true;
+        $_SESSION['is_admin'] = true;
+    } else {
+        $loginError = 'Ungültiges Passwort.';
+    }
 }
 
 if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
@@ -35,6 +61,9 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <p class="form-description">Melden Sie sich an, um Presets zu verwalten und neue Dateien hochzuladen.</p>
                 </div>
                 <form method="post" class="section-split">
+                    <?php if ($loginError): ?>
+                        <div class="alert alert-error"><?= htmlspecialchars($loginError) ?></div>
+                    <?php endif; ?>
                     <div class="form-group">
                         <label for="password">Passwort</label>
                         <input type="password" name="password" id="password" class="form-control" required>
