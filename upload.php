@@ -108,6 +108,7 @@ $loadedData = [
     'mediksystem' => ''
 ];
 $message = '';
+$messageType = 'success';
 
 if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
     $fileToDelete = basename($_POST['existing_file']);
@@ -127,27 +128,45 @@ if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
     $event = htmlspecialchars($_POST['event'] ?? '');
     $funkmod = htmlspecialchars($_POST['funkmod']);
     $mediksystem = htmlspecialchars($_POST['mediksystem']);
-    $htmlFile = $_FILES['html_file']['name'];
+    $fileInfo = $_FILES['html_file'] ?? ['name' => '', 'tmp_name' => '', 'error' => UPLOAD_ERR_NO_FILE];
+    $htmlFile = $fileInfo['name'] ?? '';
+    $tmpName = $fileInfo['tmp_name'] ?? '';
+    $fileError = $fileInfo['error'] ?? UPLOAD_ERR_NO_FILE;
+    $hasUploadedFile = !empty($tmpName) && $fileError === UPLOAD_ERR_OK;
     $isEdit = !empty($_POST['existing_file']);
 
-    $finalFileName = $isEdit ? basename($_POST['existing_file']) : $htmlFile;
+    if ($fileError !== UPLOAD_ERR_OK && $fileError !== UPLOAD_ERR_NO_FILE) {
+        $message = 'Die HTML-Datei konnte nicht hochgeladen werden. Bitte versuche es erneut.';
+        $messageType = 'error';
+    } elseif (!$isEdit && !$hasUploadedFile) {
+        $message = 'Für neue Presets muss eine HTML-Datei hochgeladen werden.';
+        $messageType = 'error';
+    } else {
+        $finalFileName = $isEdit ? basename($_POST['existing_file']) : $htmlFile;
 
-    if (!empty($_FILES['html_file']['tmp_name'])) {
-        move_uploaded_file($_FILES['html_file']['tmp_name'], $uploadDir . $finalFileName);
+        if ($hasUploadedFile && $finalFileName !== '') {
+            move_uploaded_file($tmpName, $uploadDir . $finalFileName);
+        }
+
+        if ($finalFileName !== '') {
+            $jsonData = json_encode([
+                'organizer' => $organizer,
+                'date' => $date,
+                'event' => $event,
+                'funkmod' => $funkmod,
+                'mediksystem' => $mediksystem
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+            file_put_contents($uploadDir . pathinfo($finalFileName, PATHINFO_FILENAME) . '.json', $jsonData);
+
+            $message = $isEdit ? 'Eintrag erfolgreich aktualisiert.' : 'Neuer Eintrag erfolgreich gespeichert.';
+            $existingFile = $finalFileName;
+            $messageType = 'success';
+        } else {
+            $message = 'Es konnte kein gültiger Dateiname ermittelt werden.';
+            $messageType = 'error';
+        }
     }
-
-    $jsonData = json_encode([
-        'organizer' => $organizer,
-        'date' => $date,
-        'event' => $event,
-        'funkmod' => $funkmod,
-        'mediksystem' => $mediksystem
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-
-    file_put_contents($uploadDir . pathinfo($finalFileName, PATHINFO_FILENAME) . '.json', $jsonData);
-
-    $message = $isEdit ? 'Eintrag erfolgreich aktualisiert.' : 'Neuer Eintrag erfolgreich gespeichert.';
-    $existingFile = $finalFileName;
 }
 
 if ($existingFile) {
@@ -189,7 +208,7 @@ if ($existingFile) {
     </header>
 
     <?php if ($message): ?>
-        <div class="alert alert-success"><?= $message ?></div>
+        <div class="alert alert-<?= $messageType === 'error' ? 'error' : 'success' ?>"><?= $message ?></div>
     <?php endif; ?>
 
     <div class="glass-card form-card">
@@ -262,6 +281,7 @@ if ($existingFile) {
                 <div class="form-group">
                     <label for="html_file">HTML-Datei (optional zum Ersetzen)</label>
                     <input type="file" name="html_file" id="html_file" class="form-control">
+                    <div class="alert alert-info">Für neue Presets ist eine HTML-Datei zwingend erforderlich.</div>
                     <p class="status-text">Lade nur eine Datei hoch, wenn du den bestehenden Inhalt ersetzen möchtest.</p>
                 </div>
 
