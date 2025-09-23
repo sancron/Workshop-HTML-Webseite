@@ -1,10 +1,9 @@
 <?php
-session_start(); // ⬅ Session starten
+session_start();
 
 $uploadDir = 'html_files/';
 $entries = [];
 
-// Admin prüfen über Session
 $isAdmin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
 
 foreach (glob($uploadDir . '*.json') as $jsonFile) {
@@ -39,74 +38,70 @@ unset($organizerEntries);
     <meta charset="UTF-8">
     <title>Modset Übersicht</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .card-fixed {
-            min-height: 320px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: bold;
-        }
-        .category-header {
-            margin-top: 4rem;
-            margin-bottom: 2rem;
-            border-bottom: 2px solid #ccc;
-            padding-bottom: 0.5rem;
-        }
-        .btn-group-custom .btn {
-            margin-right: 0.5rem;
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/app.css">
 </head>
-<body class="bg-dark text-white">
-<div class="container py-5">
-    <h1 class="mb-5 text-center">Verfügbare Modset Presets</h1>
-
-    <?php foreach ($entries as $organizer => $modsets): ?>
-        <div class="category-header">
-            <h2><?= htmlspecialchars($organizer) ?></h2>
+<body class="app-body">
+<div class="app-wrapper">
+    <header class="hero">
+        <nav class="hero-nav">
+            <div class="brand">
+                <img src="logo.png" alt="Projektlogo" class="brand-logo">
+                <span class="brand-name">Modset Übersicht</span>
+            </div>
+            <div class="nav-actions">
+                <a href="#modsets" class="nav-link">Presets</a>
+                <?php if ($isAdmin): ?>
+                    <a href="upload.php" class="btn btn-glass">Modset hochladen</a>
+                <?php endif; ?>
+            </div>
+        </nav>
+        <div class="hero-content">
+            <h1 class="hero-title">Deine zentrale Sammlung für Arma-Modsets</h1>
+            <p class="hero-subtitle">Durchstöbere kuratierte Presets, erfahre alle Details und starte direkt in die nächste Mission.</p>
+            <div class="hero-actions">
+                <a href="#modsets" class="btn btn-primary-glass">Modsets entdecken</a>
+                <a href="html_files/" class="btn btn-secondary-glass">Alle Dateien</a>
+            </div>
         </div>
+    </header>
 
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            <?php foreach ($modsets as $entry): ?>
-                <?php
-                    $date = DateTime::createFromFormat('Y-m-d', $entry['date']);
-                    $formattedDate = $date ? $date->format('d.m.Y') : htmlspecialchars($entry['date']);
-                ?>
-                <div class="col">
-                    <div class="card bg-secondary text-white h-100 card-fixed shadow rounded-4">
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title"><?= htmlspecialchars($entry['preset_name']) ?></h5>
-                            <p class="card-text"><strong>Datum:</strong> <?= $formattedDate ?></p>
-                            <?php if (!empty($entry['event'])): ?>
-                                <p class="card-text"><strong>Event:</strong> <?= htmlspecialchars($entry['event']) ?></p>
-                            <?php endif; ?>
-                            <p class="card-text"><strong>Funkmod:</strong> <?= htmlspecialchars($entry['funkmod']) ?></p>
-                            <p class="card-text"><strong>Mediksystem:</strong> <?= htmlspecialchars($entry['mediksystem']) ?></p>
+    <main id="modsets" class="app-main">
+        <h2 class="visually-hidden">Modset Presets</h2>
+        <?php foreach ($entries as $organizer => $modsets): ?>
+            <section class="modset-section">
+                <header class="section-header">
+                    <h3 class="section-title"><?= htmlspecialchars($organizer) ?></h3>
+                </header>
 
-                            <div class="btn-group-custom mt-auto">
-                                <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-light" target="_blank">
-                                    Vorschau anzeigen
-                                </a>
-                                <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-outline-light" download>
-                                    HTML herunterladen
-                                </a>
+                <div class="modset-grid">
+                    <?php foreach ($modsets as $entry): ?>
+                        <?php
+                            $date = DateTime::createFromFormat('Y-m-d', $entry['date']);
+                            $formattedDate = $date ? $date->format('d.m.Y') : htmlspecialchars($entry['date']);
+                        ?>
+                        <article class="modset-card glass-card">
+                            <div class="modset-card__content">
+                                <h4 class="modset-card__title"><?= htmlspecialchars($entry['preset_name']) ?></h4>
+                                <p class="modset-card__meta"><span>Datum</span><span><?= $formattedDate ?></span></p>
+                                <?php if (!empty($entry['event'])): ?>
+                                    <p class="modset-card__meta"><span>Event</span><span><?= htmlspecialchars($entry['event']) ?></span></p>
+                                <?php endif; ?>
+                                <p class="modset-card__meta"><span>Funkmod</span><span><?= htmlspecialchars($entry['funkmod']) ?></span></p>
+                                <p class="modset-card__meta"><span>Mediksystem</span><span><?= htmlspecialchars($entry['mediksystem']) ?></span></p>
+                            </div>
+                            <div class="modset-card__actions">
+                                <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-primary-glass" target="_blank">Vorschau anzeigen</a>
+                                <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-secondary-glass" download>HTML herunterladen</a>
                                 <?php if ($isAdmin): ?>
-                                    <a href="upload.php?edit=<?= urlencode($entry['preset_name']) ?>" class="btn btn-warning">
-                                        Bearbeiten
-                                    </a>
+                                    <a href="upload.php?edit=<?= urlencode($entry['preset_name']) ?>" class="btn btn-glass">Bearbeiten</a>
                                 <?php endif; ?>
                             </div>
-                        </div>
-                    </div>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endforeach; ?>
+            </section>
+        <?php endforeach; ?>
+    </main>
 </div>
 </body>
 </html>
