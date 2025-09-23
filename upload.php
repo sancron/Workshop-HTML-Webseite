@@ -17,18 +17,34 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/app.css">
 </head>
-<body class="bg-dark text-white">
-    <div class="container mt-5">
-        <h1>Login</h1>
-        <form method="post">
-            <div class="mb-3">
-                <label for="password" class="form-label">Passwort:</label>
-                <input type="password" name="password" class="form-control" required>
+<body class="app-body app-body--centered">
+    <div class="app-wrapper app-wrapper--narrow">
+        <header class="page-header">
+            <a href="index.php" class="brand page-header__brand-link">
+                <img src="logo.png" alt="Projektlogo" class="brand-logo">
+                <span class="brand-name">Modset Übersicht</span>
+            </a>
+        </header>
+        <main>
+            <div class="glass-card form-card">
+                <div>
+                    <h1 class="form-title">Admin Login</h1>
+                    <p class="form-description">Melden Sie sich an, um Presets zu verwalten und neue Dateien hochzuladen.</p>
+                </div>
+                <form method="post" class="section-split">
+                    <div class="form-group">
+                        <label for="password">Passwort</label>
+                        <input type="password" name="password" id="password" class="form-control" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Einloggen</button>
+                    </div>
+                </form>
             </div>
-            <button type="submit" class="btn btn-primary">Einloggen</button>
-        </form>
+        </main>
     </div>
 </body>
 </html>
@@ -106,7 +122,8 @@ if ($existingFile) {
 <head>
     <meta charset="UTF-8">
     <title>Modset Upload / Bearbeiten</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="assets/css/app.css">
     <script>
         function loadSelectedFile(sel) {
             if (sel.value) {
@@ -117,84 +134,106 @@ if ($existingFile) {
         }
     </script>
 </head>
-<body class="bg-dark text-white">
-<div class="container mt-5">
-    <h1>Modset Upload / Bearbeiten</h1>
+<body class="app-body">
+<div class="app-wrapper">
+    <header class="page-header">
+        <a href="index.php" class="brand page-header__brand-link">
+            <img src="logo.png" alt="Projektlogo" class="brand-logo">
+            <span class="brand-name">Modset Übersicht</span>
+        </a>
+        <div class="nav-actions">
+            <a href="index.php" class="btn btn-secondary">Zurück zur Übersicht</a>
+        </div>
+    </header>
 
     <?php if ($message): ?>
         <div class="alert alert-success"><?= $message ?></div>
     <?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data" class="mb-5">
-        <div class="mb-3">
-            <label for="existing_file" class="form-label">Existierenden Eintrag bearbeiten:</label>
-            <select name="existing_file" id="existing_file" class="form-select" onchange="loadSelectedFile(this)">
-                <option value="">-- Neue Datei --</option>
-                <?php foreach ($existingFiles as $file): ?>
-                    <?php $basename = basename($file); ?>
-                    <option value="<?= $basename ?>" <?= ($basename === $existingFile ? 'selected' : '') ?>>
-                        <?= $basename ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
+    <div class="glass-card form-card">
+        <div class="section-split">
+            <div>
+                <h1 class="form-title">Modset Upload &amp; Verwaltung</h1>
+                <p class="form-description">Lade neue Presets hoch oder aktualisiere bestehende Einträge für deine Organisation.</p>
+            </div>
 
-        <div class="mb-3">
-            <label for="preset_name" class="form-label">Preset-Name (Dateiname)</label>
-            <input type="text" name="preset_name" id="preset_name" class="form-control" required
-                   value="<?= htmlspecialchars($loadedData['preset_name']) ?>"
-                   <?= $existingFile ? 'readonly' : '' ?>>
-        </div>
+            <form method="post" enctype="multipart/form-data" class="section-split">
+                <div class="form-group">
+                    <label for="existing_file">Existierenden Eintrag bearbeiten</label>
+                    <select name="existing_file" id="existing_file" class="form-select" onchange="loadSelectedFile(this)">
+                        <option value="">-- Neue Datei --</option>
+                        <?php foreach ($existingFiles as $file): ?>
+                            <?php $basename = basename($file); ?>
+                            <option value="<?= $basename ?>" <?= ($basename === $existingFile ? 'selected' : '') ?>>
+                                <?= $basename ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-        <div class="mb-3">
-            <label for="organizer" class="form-label">Veranstalter</label>
-            <input type="text" name="organizer" id="organizer" class="form-control" required
-                   value="<?= htmlspecialchars($loadedData['organizer']) ?>">
-        </div>
+                <div class="form-grid form-grid--two">
+                    <div class="form-group">
+                        <label for="preset_name">Preset-Name (Dateiname)</label>
+                        <input type="text" name="preset_name" id="preset_name" class="form-control" required
+                               value="<?= htmlspecialchars($loadedData['preset_name']) ?>"
+                               <?= $existingFile ? 'readonly' : '' ?>>
+                    </div>
 
-        <div class="mb-3">
-            <label for="date" class="form-label">Datum</label>
-            <input type="date" name="date" id="date" class="form-control" required
-                   value="<?= htmlspecialchars($loadedData['date']) ?>">
-        </div>
+                    <div class="form-group">
+                        <label for="organizer">Veranstalter</label>
+                        <input type="text" name="organizer" id="organizer" class="form-control" required
+                               value="<?= htmlspecialchars($loadedData['organizer']) ?>">
+                    </div>
 
-        <div class="mb-3">
-            <label for="event" class="form-label">Event (optional)</label>
-            <input type="text" name="event" id="event" class="form-control"
-                   value="<?= htmlspecialchars($loadedData['event']) ?>">
-        </div>
+                    <div class="form-group">
+                        <label for="date">Datum</label>
+                        <input type="date" name="date" id="date" class="form-control" required
+                               value="<?= htmlspecialchars($loadedData['date']) ?>">
+                    </div>
 
-        <div class="mb-3">
-            <label for="funkmod" class="form-label">Funkmod</label>
-            <select name="funkmod" id="funkmod" class="form-select" required>
-                <option value="">-- auswählen --</option>
-                <option value="ACRE" <?= $loadedData['funkmod'] === 'ACRE' ? 'selected' : '' ?>>ACRE</option>
-                <option value="TFAR" <?= $loadedData['funkmod'] === 'TFAR' ? 'selected' : '' ?>>TFAR</option>
-            </select>
-        </div>
+                    <div class="form-group">
+                        <label for="event">Event (optional)</label>
+                        <input type="text" name="event" id="event" class="form-control"
+                               value="<?= htmlspecialchars($loadedData['event']) ?>">
+                    </div>
 
-        <div class="mb-3">
-            <label for="mediksystem" class="form-label">Mediksystem</label>
-            <select name="mediksystem" id="mediksystem" class="form-select" required>
-                <option value="">-- auswählen --</option>
-                <option value="Vanilla" <?= $loadedData['mediksystem'] === 'Vanilla' ? 'selected' : '' ?>>Vanilla</option>
-                <option value="ACE" <?= $loadedData['mediksystem'] === 'ACE' ? 'selected' : '' ?>>ACE</option>
-                <option value="KAT" <?= $loadedData['mediksystem'] === 'KAT' ? 'selected' : '' ?>>KAT</option>
-            </select>
-        </div>
+                    <div class="form-group">
+                        <label for="funkmod">Funkmod</label>
+                        <select name="funkmod" id="funkmod" class="form-select" required>
+                            <option value="">-- auswählen --</option>
+                            <option value="ACRE" <?= $loadedData['funkmod'] === 'ACRE' ? 'selected' : '' ?>>ACRE</option>
+                            <option value="TFAR" <?= $loadedData['funkmod'] === 'TFAR' ? 'selected' : '' ?>>TFAR</option>
+                        </select>
+                    </div>
 
-        <div class="mb-3">
-            <label for="html_file" class="form-label">HTML-Datei (optional zum Ersetzen)</label>
-            <input type="file" name="html_file" id="html_file" class="form-control">
-        </div>
+                    <div class="form-group">
+                        <label for="mediksystem">Mediksystem</label>
+                        <select name="mediksystem" id="mediksystem" class="form-select" required>
+                            <option value="">-- auswählen --</option>
+                            <option value="Vanilla" <?= $loadedData['mediksystem'] === 'Vanilla' ? 'selected' : '' ?>>Vanilla</option>
+                            <option value="ACE" <?= $loadedData['mediksystem'] === 'ACE' ? 'selected' : '' ?>>ACE</option>
+                            <option value="KAT" <?= $loadedData['mediksystem'] === 'KAT' ? 'selected' : '' ?>>KAT</option>
+                        </select>
+                    </div>
+                </div>
 
-        <button type="submit" class="btn btn-success">Speichern</button>
-        <?php if ($existingFile): ?>
-            <button type="submit" name="delete" value="1" class="btn btn-danger" onclick="return confirm('Eintrag wirklich löschen?')">
-                Löschen
-            </button>
-        <?php endif; ?>
-    </form>
+                <div class="form-group">
+                    <label for="html_file">HTML-Datei (optional zum Ersetzen)</label>
+                    <input type="file" name="html_file" id="html_file" class="form-control">
+                    <p class="status-text">Lade nur eine Datei hoch, wenn du den bestehenden Inhalt ersetzen möchtest.</p>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                    <?php if ($existingFile): ?>
+                        <button type="submit" name="delete" value="1" class="btn btn-danger" onclick="return confirm('Eintrag wirklich löschen?')">
+                            Löschen
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 </body>
 </html>
