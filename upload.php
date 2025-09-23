@@ -3,28 +3,41 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 session_start();
 
-// Load environment variables from a local .env file if present.
-$envPath = __DIR__ . '/.env';
-if (is_readable($envPath)) {
-    $envLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($envLines as $line) {
-        $line = trim($line);
-        if ($line === '' || strpos($line, '#') === 0) {
+$adminPasswordHash = '';
+
+if (!empty($_SERVER['ADMIN_PASSWORD_HASH'])) {
+    $adminPasswordHash = (string) $_SERVER['ADMIN_PASSWORD_HASH'];
+} elseif (($envHash = getenv('ADMIN_PASSWORD_HASH'))) {
+    $adminPasswordHash = $envHash;
+} else {
+    $credentialFiles = [];
+
+    $configuredFile = $_SERVER['CREDENTIALS_FILE'] ?? getenv('CREDENTIALS_FILE');
+    if (!empty($configuredFile)) {
+        $credentialFiles[] = $configuredFile;
+    }
+
+    $credentialFiles[] = dirname(__DIR__) . '/config/credentials.php';
+
+    $localFallback = __DIR__ . '/config/credentials.php';
+    if (!in_array($localFallback, $credentialFiles, true)) {
+        $credentialFiles[] = $localFallback;
+    }
+
+    foreach ($credentialFiles as $credentialsPath) {
+        if (!$credentialsPath || !is_readable($credentialsPath)) {
             continue;
         }
 
-        [$name, $value] = array_map('trim', explode('=', $line, 2) + ['', '']);
-        if ($name === '') {
-            continue;
+        $credentials = require $credentialsPath;
+        if (is_array($credentials) && !empty($credentials['ADMIN_PASSWORD_HASH'])) {
+            $adminPasswordHash = (string) $credentials['ADMIN_PASSWORD_HASH'];
+            break;
         }
-
-        $value = trim($value, "\"' ");
-        putenv("{$name}={$value}");
-        $_ENV[$name] = $value;
     }
 }
 
-$adminPasswordHash = getenv('ADMIN_PASSWORD_HASH') ?: ($_ENV['ADMIN_PASSWORD_HASH'] ?? '');
+$adminPasswordHash = trim($adminPasswordHash);
 $loginError = '';
 
 if (isset($_POST['password'])) {
