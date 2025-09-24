@@ -80,21 +80,25 @@ unset($organizerEntries);
                             $formattedDate = $date ? $date->format('d.m.Y') : htmlspecialchars($entry['date']);
                         ?>
                         <article class="modset-card glass-card">
-                            <div class="modset-card__content">
-                                <h4 class="modset-card__title"><?= htmlspecialchars($entry['preset_name']) ?></h4>
-                                <p class="modset-card__meta"><span>Datum</span><span><?= $formattedDate ?></span></p>
-                                <?php if (!empty($entry['event'])): ?>
-                                    <p class="modset-card__meta"><span>Event</span><span><?= htmlspecialchars($entry['event']) ?></span></p>
-                                <?php endif; ?>
-                                <p class="modset-card__meta"><span>Funkmod</span><span><?= htmlspecialchars($entry['funkmod']) ?></span></p>
-                                <p class="modset-card__meta"><span>Mediksystem</span><span><?= htmlspecialchars($entry['mediksystem']) ?></span></p>
-                            </div>
-                            <div class="modset-card__actions">
-                                <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-primary-glass" target="_blank">Vorschau anzeigen</a>
-                                <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-secondary-glass" download>HTML herunterladen</a>
-                                <?php if ($isAdmin): ?>
-                                    <a href="upload.php?edit=<?= urlencode($entry['preset_name']) ?>" class="btn btn-glass">Bearbeiten</a>
-                                <?php endif; ?>
+                            <div class="modset-card__row">
+                                <div class="modset-card__info">
+                                    <h4 class="modset-card__title"><?= htmlspecialchars($entry['preset_name']) ?></h4>
+                                    <div class="modset-card__content">
+                                        <p class="modset-card__meta"><span>Datum</span><span><?= $formattedDate ?></span></p>
+                                        <?php if (!empty($entry['event'])): ?>
+                                            <p class="modset-card__meta"><span>Event</span><span><?= htmlspecialchars($entry['event']) ?></span></p>
+                                        <?php endif; ?>
+                                        <p class="modset-card__meta"><span>Funkmod</span><span><?= htmlspecialchars($entry['funkmod']) ?></span></p>
+                                        <p class="modset-card__meta"><span>Mediksystem</span><span><?= htmlspecialchars($entry['mediksystem']) ?></span></p>
+                                    </div>
+                                </div>
+                                <div class="modset-card__actions">
+                                    <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-primary-glass" target="_blank">Vorschau anzeigen</a>
+                                    <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-secondary-glass" download>HTML herunterladen</a>
+                                    <?php if ($isAdmin): ?>
+                                        <a href="upload.php?edit=<?= urlencode($entry['preset_name']) ?>" class="btn btn-glass">Bearbeiten</a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </article>
                     <?php endforeach; ?>
