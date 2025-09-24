@@ -231,6 +231,8 @@ if ($existingFile) {
     }
     $loadedData['preset_name'] = pathinfo($existingFile, PATHINFO_FILENAME);
 }
+
+$isPresetLocked = $existingFile !== '';
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -287,10 +289,20 @@ if ($existingFile) {
 
                 <div class="form-grid form-grid--two">
                     <div class="form-group">
-                        <label for="preset_name">Preset-Name (Dateiname)</label>
-                        <input type="text" name="preset_name" id="preset_name" class="form-control" required
+                        <label for="preset_name">
+                            Preset-Name (Dateiname)
+                            <?php if ($isPresetLocked): ?>
+                                <span class="field-status field-status--locked">Gesperrt</span>
+                            <?php endif; ?>
+                        </label>
+                        <input type="text" name="preset_name" id="preset_name" class="form-control<?= $isPresetLocked ? ' is-readonly' : '' ?>" required
                                value="<?= htmlspecialchars($loadedData['preset_name']) ?>"
-                               <?= $existingFile ? 'readonly' : '' ?>>
+                               <?= $isPresetLocked ? 'readonly aria-describedby="preset_name_hint"' : '' ?>>
+                        <?php if ($isPresetLocked): ?>
+                            <p id="preset_name_hint" class="form-hint form-hint--readonly">
+                                Der Preset-Name wird beim Bearbeiten automatisch aus dem Dateinamen übernommen und kann hier nicht geändert werden.
+                            </p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="form-group">

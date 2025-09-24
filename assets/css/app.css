@@ -481,6 +481,45 @@ input[type="button"].btn-danger {
     font-weight: 600;
 }
 
+.form-hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.form-hint--readonly {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.field-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.field-status::before {
+    content: '\1F512';
+    font-size: 0.75rem;
+}
+
+.field-status--locked {
+    background: rgba(99, 164, 255, 0.18);
+    color: var(--accent-secondary);
+}
+
 .form-control,
 .form-select,
 input[type="text"],
@@ -510,6 +549,33 @@ textarea:focus {
     outline: none;
     border-color: rgba(126, 168, 255, 0.7);
     box-shadow: 0 0 0 4px rgba(104, 141, 255, 0.15);
+}
+
+.form-control[readonly],
+.form-select[readonly],
+input[readonly],
+select[readonly],
+textarea[readonly],
+.is-readonly {
+    background: rgba(40, 46, 64, 0.8);
+    border-color: rgba(130, 160, 220, 0.35);
+    color: rgba(230, 235, 255, 0.75);
+    cursor: not-allowed;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 16 16'%3E%3Cpath fill='%23A0B1FF' d='M8 1.75a3.25 3.25 0 0 1 3.25 3.25v1.25H12a1.5 1.5 0 0 1 1.5 1.5v4.75A1.5 1.5 0 0 1 12 14H4a1.5 1.5 0 0 1-1.5-1.5V7.75A1.5 1.5 0 0 1 4 6.25h.75V5a3.25 3.25 0 0 1 3.25-3.25Zm0 1.5A1.75 1.75 0 0 0 6.25 5v1.25h3.5V5A1.75 1.75 0 0 0 8 3.25Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 0.85rem) center;
+    background-size: 0.9rem;
+    padding-right: 2.4rem;
+}
+
+.form-control[readonly]:focus,
+.form-select[readonly]:focus,
+input[readonly]:focus,
+select[readonly]:focus,
+textarea[readonly]:focus,
+.is-readonly:focus {
+    box-shadow: none;
+    border-color: rgba(130, 160, 220, 0.35);
 }
 
 input[type="file"] {
