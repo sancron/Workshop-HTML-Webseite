@@ -41,20 +41,37 @@ unset($organizerEntries);
     <link rel="stylesheet" href="assets/css/app.css">
 </head>
 <body class="app-body">
+<header class="menu-bar" data-menu-bar>
+    <div class="menu-bar__inner">
+        <a href="index.php" class="brand menu-bar__brand" aria-label="Startseite">
+            <img src="logo.png" alt="Projektlogo" class="brand-logo">
+            <span class="brand-name">Modset Übersicht</span>
+        </a>
+        <nav class="menu-bar__nav" aria-label="Hauptnavigation">
+            <a href="#modsets" class="menu-bar__link">Presets</a>
+        </nav>
+        <div class="menu-bar__actions">
+            <button class="menu-bar__settings" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="settingsMenu">
+                <span class="visually-hidden">Einstellungen</span>
+                <svg class="menu-bar__icon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="currentColor" d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm9-3.5c0-.49-.04-.98-.12-1.46l2.07-1.62a.75.75 0 0 0 .18-.94l-1.97-3.41a.75.75 0 0 0-.9-.34l-2.44.98a7.6 7.6 0 0 0-2.53-1.46l-.37-2.6a.75.75 0 0 0-.74-.64H9.82a.75.75 0 0 0-.74.64l-.37 2.6a7.6 7.6 0 0 0-2.53 1.46l-2.44-.98a.75.75 0 0 0-.9.34L.87 7.98a.75.75 0 0 0 .18.94L3.12 10.5a8.1 8.1 0 0 0 0 2.92l-2.07 1.62a.75.75 0 0 0-.18.94l1.97 3.41c.2.36.63.51 1 .36l2.44-.98c.75.62 1.6 1.12 2.53 1.46l.37 2.6c.06.37.37.64.74.64h3.36c.37 0 .68-.27.74-.64l.37-2.6a7.6 7.6 0 0 0 2.53-1.46l2.44.98c.37.15.8 0 1-.36l1.97-3.41a.75.75 0 0 0-.18-.94l-2.07-1.62c.08-.48.12-.97.12-1.46Z"/>
+                </svg>
+            </button>
+            <time class="menu-bar__clock" data-time-display>--:--</time>
+            <div class="menu-bar__dropdown" id="settingsMenu" data-dropdown>
+                <ul class="menu-bar__dropdown-list">
+                    <li class="menu-bar__dropdown-item">
+                        <a href="upload.php" class="menu-bar__dropdown-link">
+                            <?= $isAdmin ? 'Modset verwalten' : 'Admin Login &amp; Upload' ?>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</header>
 <div class="app-wrapper">
     <header class="hero">
-        <nav class="hero-nav">
-            <div class="brand">
-                <img src="logo.png" alt="Projektlogo" class="brand-logo">
-                <span class="brand-name">Modset Übersicht</span>
-            </div>
-            <div class="nav-actions">
-                <a href="#modsets" class="nav-link">Presets</a>
-                <?php if ($isAdmin): ?>
-                    <a href="upload.php" class="btn btn-glass">Modset hochladen</a>
-                <?php endif; ?>
-            </div>
-        </nav>
         <div class="hero-content">
             <h1 class="hero-title">Deine zentrale Sammlung für Arma-Modsets</h1>
             <p class="hero-subtitle">Durchstöbere kuratierte Presets, erfahre alle Details und starte direkt in die nächste Mission.</p>
@@ -107,5 +124,6 @@ unset($organizerEntries);
         <?php endforeach; ?>
     </main>
 </div>
+<script src="assets/js/app.js" defer></script>
 </body>
 </html>
