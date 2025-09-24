@@ -94,7 +94,7 @@ unset($organizerEntries);
                                 </div>
                                 <div class="modset-card__actions">
                                     <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-primary-glass" target="_blank">Vorschau anzeigen</a>
-                                    <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-secondary-glass" download>HTML herunterladen</a>
+                                    <a href="<?= htmlspecialchars($entry['html']) ?>" class="btn btn-download" download>HTML herunterladen</a>
                                     <?php if ($isAdmin): ?>
                                         <a href="upload.php?edit=<?= urlencode($entry['preset_name']) ?>" class="btn btn-glass">Bearbeiten</a>
                                     <?php endif; ?>
