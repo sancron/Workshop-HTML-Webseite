@@ -488,38 +488,6 @@ input[type="button"].btn-danger {
     line-height: 1.4;
 }
 
-.form-hint--readonly {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.field-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-left: 0.5rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--text-primary);
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-.field-status::before {
-    content: '\1F512';
-    font-size: 0.75rem;
-}
-
-.field-status--locked {
-    background: rgba(99, 164, 255, 0.18);
-    color: var(--accent-secondary);
-}
-
 .form-control,
 .form-select,
 input[type="text"],
