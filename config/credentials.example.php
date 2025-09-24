@@ -5,4 +5,8 @@ return [
     // and point the application to it via the CREDENTIALS_FILE environment variable
     // or by placing it one level above the document root.
     'ADMIN_PASSWORD_HASH' => 'paste-your-password-hash-here',
+    // Optional: master password used to unlock administrative maintenance tasks
+    // such as changing the admin password. If omitted, only regular admin access
+    // is available.
+    'MASTER_PASSWORD_HASH' => 'optional-master-password-hash',
 ];
