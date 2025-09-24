@@ -15,52 +15,196 @@ if ($debugEnabled) {
 session_start();
 
 $adminPasswordHash = '';
+$masterPasswordHash = '';
+$credentialsPathUsed = null;
+$credentialsData = [];
+$adminHashSource = '';
+$masterHashSource = '';
 
-if (!empty($_SERVER['ADMIN_PASSWORD_HASH'])) {
-    $adminPasswordHash = (string) $_SERVER['ADMIN_PASSWORD_HASH'];
+$serverAdminHash = $_SERVER['ADMIN_PASSWORD_HASH'] ?? null;
+if (!empty($serverAdminHash)) {
+    $adminPasswordHash = trim((string) $serverAdminHash);
+    $adminHashSource = 'server';
 } elseif (($envHash = getenv('ADMIN_PASSWORD_HASH'))) {
-    $adminPasswordHash = $envHash;
-} else {
-    $credentialFiles = [];
+    $adminPasswordHash = trim($envHash);
+    $adminHashSource = 'env';
+}
 
-    $configuredFile = $_SERVER['CREDENTIALS_FILE'] ?? getenv('CREDENTIALS_FILE');
-    if (!empty($configuredFile)) {
-        $credentialFiles[] = $configuredFile;
+$serverMasterHash = $_SERVER['MASTER_PASSWORD_HASH'] ?? null;
+if (empty($serverMasterHash)) {
+    $serverMasterHash = getenv('MASTER_PASSWORD_HASH') ?: null;
+}
+if (!empty($serverMasterHash)) {
+    $masterPasswordHash = trim((string) $serverMasterHash);
+    $masterHashSource = 'env';
+}
+
+$credentialFiles = [];
+$configuredFile = $_SERVER['CREDENTIALS_FILE'] ?? getenv('CREDENTIALS_FILE');
+if (!empty($configuredFile)) {
+    $credentialFiles[] = $configuredFile;
+}
+
+$credentialFiles[] = dirname(__DIR__) . '/config/credentials.php';
+
+$localFallback = __DIR__ . '/config/credentials.php';
+if (!in_array($localFallback, $credentialFiles, true)) {
+    $credentialFiles[] = $localFallback;
+}
+
+foreach ($credentialFiles as $credentialsPath) {
+    if (!$credentialsPath || !is_readable($credentialsPath)) {
+        continue;
     }
 
-    $credentialFiles[] = dirname(__DIR__) . '/config/credentials.php';
-
-    $localFallback = __DIR__ . '/config/credentials.php';
-    if (!in_array($localFallback, $credentialFiles, true)) {
-        $credentialFiles[] = $localFallback;
+    $credentials = require $credentialsPath;
+    if (!is_array($credentials)) {
+        continue;
     }
 
-    foreach ($credentialFiles as $credentialsPath) {
-        if (!$credentialsPath || !is_readable($credentialsPath)) {
-            continue;
-        }
+    if ($credentialsPathUsed === null) {
+        $credentialsPathUsed = $credentialsPath;
+        $credentialsData = $credentials;
+    }
 
-        $credentials = require $credentialsPath;
-        if (is_array($credentials) && !empty($credentials['ADMIN_PASSWORD_HASH'])) {
-            $adminPasswordHash = (string) $credentials['ADMIN_PASSWORD_HASH'];
-            break;
+    if ($adminHashSource !== 'file' && !empty($credentials['ADMIN_PASSWORD_HASH'])) {
+        $adminPasswordHash = trim((string) $credentials['ADMIN_PASSWORD_HASH']);
+        $adminHashSource = 'file';
+        $credentialsPathUsed = $credentialsPath;
+        $credentialsData = $credentials;
+    }
+
+    if ($masterPasswordHash === '' && !empty($credentials['MASTER_PASSWORD_HASH'])) {
+        $masterPasswordHash = trim((string) $credentials['MASTER_PASSWORD_HASH']);
+        $masterHashSource = 'file';
+        if ($credentialsPathUsed === null) {
+            $credentialsPathUsed = $credentialsPath;
+            $credentialsData = $credentials;
         }
+    }
+
+    if ($adminHashSource === 'file' && ($masterPasswordHash !== '' || array_key_exists('MASTER_PASSWORD_HASH', $credentials))) {
+        break;
     }
 }
 
-$adminPasswordHash = trim($adminPasswordHash);
 $loginError = '';
+$isAuthenticated = !empty($_SESSION['authenticated']);
+$isMasterAdmin = !empty($_SESSION['is_master_admin']);
 
-if (isset($_POST['password'])) {
-    if ($adminPasswordHash && password_verify($_POST['password'], $adminPasswordHash)) {
+$formType = $_POST['form_type'] ?? '';
+
+if ($formType === 'login' && isset($_POST['password'])) {
+    $password = (string) $_POST['password'];
+    if ($masterPasswordHash !== '' && password_verify($password, $masterPasswordHash)) {
         $_SESSION['authenticated'] = true;
         $_SESSION['is_admin'] = true;
+        $_SESSION['is_master_admin'] = true;
+        $isAuthenticated = true;
+        $isMasterAdmin = true;
+    } elseif ($adminPasswordHash && password_verify($password, $adminPasswordHash)) {
+        $_SESSION['authenticated'] = true;
+        $_SESSION['is_admin'] = true;
+        $_SESSION['is_master_admin'] = false;
+        $isAuthenticated = true;
+        $isMasterAdmin = false;
     } else {
         $loginError = 'Ungültiges Passwort.';
     }
 }
 
-if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
+$isAuthenticated = !empty($_SESSION['authenticated']);
+$isMasterAdmin = !empty($_SESSION['is_master_admin']);
+
+$passwordChangeMessage = '';
+$passwordChangeType = 'info';
+$requestedAction = $_GET['action'] ?? '';
+$showPasswordForm = $isMasterAdmin && $requestedAction === 'change-password';
+$canChangePassword = $isMasterAdmin && $adminHashSource === 'file' && $credentialsPathUsed;
+
+if ($requestedAction === 'change-password' && !$isMasterAdmin && $isAuthenticated) {
+    http_response_code(403);
+    $passwordChangeMessage = 'Du bist nicht berechtigt, das Passwort zu ändern.';
+    $passwordChangeType = 'error';
+}
+
+if ($formType === 'change_password') {
+    $showPasswordForm = true;
+    if (!$isAuthenticated || !$isMasterAdmin) {
+        http_response_code(403);
+        $passwordChangeMessage = 'Nicht autorisiert.';
+        $passwordChangeType = 'error';
+    } else {
+        $currentPassword = (string) ($_POST['current_password'] ?? '');
+        $newPassword = (string) ($_POST['new_password'] ?? '');
+        $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+        $errors = [];
+
+        if ($masterPasswordHash === '' || !password_verify($currentPassword, $masterPasswordHash)) {
+            $errors[] = 'Das aktuelle Master-Passwort ist ungültig.';
+        }
+
+        if ($newPassword === '') {
+            $errors[] = 'Bitte gib ein neues Passwort ein.';
+        } elseif (strlen($newPassword) < 8) {
+            $errors[] = 'Das neue Passwort muss mindestens 8 Zeichen lang sein.';
+        }
+
+        if ($confirmPassword === '') {
+            $errors[] = 'Bitte bestätige das neue Passwort.';
+        } elseif ($confirmPassword !== $newPassword) {
+            $errors[] = 'Die Passwortbestätigung stimmt nicht überein.';
+        }
+
+        if (!$credentialsPathUsed || $adminHashSource !== 'file') {
+            $errors[] = 'Die Zugangsdaten werden nicht aus einer Datei geladen und können nicht automatisch aktualisiert werden.';
+        } else {
+            $credentialsDir = dirname($credentialsPathUsed);
+            if (file_exists($credentialsPathUsed)) {
+                if (!is_writable($credentialsPathUsed) || !is_writable($credentialsDir)) {
+                    $errors[] = 'Die Credentials-Datei ist schreibgeschützt oder das Zielverzeichnis ist nicht beschreibbar.';
+                }
+            } elseif (!file_exists($credentialsPathUsed) && (!is_dir($credentialsDir) || !is_writable($credentialsDir))) {
+                $errors[] = 'Das Credentials-Verzeichnis ist nicht beschreibbar.';
+            }
+        }
+
+        if (!$errors) {
+            $currentCredentials = require $credentialsPathUsed;
+            if (!is_array($currentCredentials)) {
+                $errors[] = 'Die Credentials-Datei hat ein ungültiges Format.';
+            } else {
+                $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                $currentCredentials['ADMIN_PASSWORD_HASH'] = $newHash;
+                if (!array_key_exists('MASTER_PASSWORD_HASH', $currentCredentials) && $masterPasswordHash !== '') {
+                    $currentCredentials['MASTER_PASSWORD_HASH'] = $masterPasswordHash;
+                }
+
+                if (!writeCredentialsFile($credentialsPathUsed, $currentCredentials)) {
+                    $errors[] = 'Die Credentials-Datei konnte nicht aktualisiert werden.';
+                } else {
+                    $passwordChangeMessage = 'Das Admin-Passwort wurde erfolgreich aktualisiert.';
+                    $passwordChangeType = 'success';
+                    $adminPasswordHash = $newHash;
+                    $credentialsData = $currentCredentials;
+                    $canChangePassword = true;
+                }
+            }
+        }
+
+        if ($errors) {
+            $passwordChangeMessage = implode("\n", $errors);
+            $passwordChangeType = 'error';
+        }
+    }
+}
+
+if ($showPasswordForm && !$canChangePassword && $passwordChangeMessage === '') {
+    $passwordChangeMessage = 'Das Passwort kann nicht geändert werden, da die Anwendung aktuell keine Credentials-Datei verwendet.';
+    $passwordChangeType = 'info';
+}
+
+if (!$isAuthenticated) {
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -85,6 +229,7 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
                     <p class="form-description">Melden Sie sich an, um Presets zu verwalten und neue Dateien hochzuladen.</p>
                 </div>
                 <form method="post" class="section-split">
+                    <input type="hidden" name="form_type" value="login">
                     <?php if ($loginError): ?>
                         <div class="alert alert-error"><?= htmlspecialchars($loginError) ?></div>
                     <?php endif; ?>
@@ -140,10 +285,41 @@ function normalizeHtmlFilename(?string $value, array $allowedFiles, string $base
     return $normalized;
 }
 
+function writeCredentialsFile(string $path, array $data): bool
+{
+    $directory = dirname($path);
+    if (!is_dir($directory) || !is_writable($directory)) {
+        return false;
+    }
+
+    $tempFile = tempnam($directory, 'cred_');
+    if ($tempFile === false) {
+        return false;
+    }
+
+    $content = "<?php\nreturn " . var_export($data, true) . ";\n";
+
+    if (file_put_contents($tempFile, $content, LOCK_EX) === false) {
+        @unlink($tempFile);
+        return false;
+    }
+
+    @chmod($tempFile, 0640);
+
+    if (!@rename($tempFile, $path)) {
+        @unlink($tempFile);
+        return false;
+    }
+
+    @chmod($path, 0640);
+
+    return true;
+}
+
 $existingParam = $_POST['existing_file'] ?? ($_GET['edit'] ?? '');
 $existingFile = normalizeHtmlFilename($existingParam, $existingFiles, $uploadDir);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $formType === 'modset') {
     $_POST['existing_file'] = $existingFile;
 }
 $loadedData = [
@@ -157,7 +333,7 @@ $loadedData = [
 $message = '';
 $messageType = 'success';
 
-if (isset($_POST['delete']) && $existingFile) {
+if ($formType === 'modset' && isset($_POST['delete']) && $existingFile) {
     $fileToDelete = $existingFile;
     $htmlPath = $uploadDir . $fileToDelete;
     $jsonPath = $uploadDir . pathinfo($fileToDelete, PATHINFO_FILENAME) . '.json';
@@ -172,7 +348,7 @@ if (isset($_POST['delete']) && $existingFile) {
         $existingFiles = array_values($existingFiles);
     }
     $loadedData = array_fill_keys(array_keys($loadedData), '');
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['preset_name'], $_POST['organizer'])) {
+} elseif ($formType === 'modset' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['preset_name'], $_POST['organizer'])) {
     $presetName = htmlspecialchars($_POST['preset_name']);
     $organizer = htmlspecialchars($_POST['organizer']);
     $date = htmlspecialchars($_POST['date']);
@@ -259,12 +435,63 @@ $isPresetLocked = $existingFile !== '';
             <span class="brand-name">Modset Übersicht</span>
         </a>
         <div class="nav-actions">
+            <?php if ($isMasterAdmin): ?>
+                <?php if ($showPasswordForm): ?>
+                    <a href="upload.php" class="btn btn-secondary">Zurück zur Verwaltung</a>
+                <?php else: ?>
+                    <a href="?action=change-password" class="btn btn-secondary">Passwort ändern</a>
+                <?php endif; ?>
+            <?php endif; ?>
             <a href="index.php" class="btn btn-secondary">Zurück zur Übersicht</a>
         </div>
     </header>
 
+    <?php if ($passwordChangeMessage): ?>
+        <?php
+        $passwordAlertClass = 'info';
+        if ($passwordChangeType === 'error') {
+            $passwordAlertClass = 'error';
+        } elseif ($passwordChangeType === 'success') {
+            $passwordAlertClass = 'success';
+        }
+        ?>
+        <div class="alert alert-<?= $passwordAlertClass ?>">
+            <?= nl2br(htmlspecialchars($passwordChangeMessage, ENT_QUOTES, 'UTF-8'), false) ?>
+        </div>
+    <?php endif; ?>
+
     <?php if ($message): ?>
         <div class="alert alert-<?= $messageType === 'error' ? 'error' : 'success' ?>"><?= $message ?></div>
+    <?php endif; ?>
+
+    <?php if ($showPasswordForm): ?>
+        <div class="glass-card form-card">
+            <div>
+                <h2 class="form-title">Admin-Passwort ändern</h2>
+                <p class="form-description">Setze ein neues Passwort für reguläre Administratoren.</p>
+            </div>
+            <form method="post" class="section-split">
+                <input type="hidden" name="form_type" value="change_password">
+                <div class="form-group">
+                    <label for="current_password">Aktuelles Master-Passwort</label>
+                    <input type="password" name="current_password" id="current_password" class="form-control" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="new_password">Neues Passwort</label>
+                    <input type="password" name="new_password" id="new_password" class="form-control" required autocomplete="new-password" minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Neues Passwort bestätigen</label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control" required autocomplete="new-password" minlength="8">
+                </div>
+                <?php if (!$canChangePassword): ?>
+                    <div class="alert alert-info">Die Zugangsdaten werden derzeit nicht aus einer Datei geladen oder die Datei kann nicht beschrieben werden.</div>
+                <?php endif; ?>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"<?= !$canChangePassword ? ' disabled' : '' ?>>Passwort aktualisieren</button>
+                </div>
+            </form>
+        </div>
     <?php endif; ?>
 
     <div class="glass-card form-card">
@@ -275,6 +502,7 @@ $isPresetLocked = $existingFile !== '';
             </div>
 
             <form method="post" enctype="multipart/form-data" class="section-split">
+                <input type="hidden" name="form_type" value="modset">
                 <div class="form-group">
                     <label for="existing_file">Existierenden Eintrag bearbeiten</label>
                     <select name="existing_file" id="existing_file" class="form-select" onchange="loadSelectedFile(this)">
