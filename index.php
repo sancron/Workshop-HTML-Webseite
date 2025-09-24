@@ -43,10 +43,10 @@ unset($organizerEntries);
 <body class="app-body">
 <header class="menu-bar" data-menu-bar>
     <div class="menu-bar__inner">
-        <a href="index.php" class="brand menu-bar__brand" aria-label="Startseite">
+        <div class="menu-bar__brand">
             <img src="logo.png" alt="Projektlogo" class="brand-logo">
             <span class="brand-name">Modset Übersicht</span>
-        </a>
+        </div>
         <nav class="menu-bar__nav" aria-label="Hauptnavigation">
             <a href="#modsets" class="menu-bar__link">Presets</a>
         </nav>

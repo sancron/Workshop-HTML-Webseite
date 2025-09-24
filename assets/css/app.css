@@ -69,6 +69,9 @@ img {
 }
 
 .page-header__brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
     text-decoration: none;
     color: inherit;
 }
@@ -230,42 +233,74 @@ img {
     padding-bottom: clamp(2rem, 4vw, 3.5rem);
 }
 
-.brand {
-    display: flex;
+.brand,
+.menu-bar__brand {
+    display: inline-flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.35rem 0.75rem;
-    border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(8px);
-}
-
-.brand-logo {
-    height: 48px;
-    width: 48px;
-    object-fit: contain;
-}
-
-.brand-name {
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    gap: 0.6rem;
+    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 500;
+    font-size: clamp(0.95rem, 1.8vw, 1rem);
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
 }
 
 .menu-bar__brand {
-    padding: 0.35rem 0.85rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 12px 30px rgba(9, 14, 40, 0.25);
-    transition: background var(--transition), border-color var(--transition), transform var(--transition);
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    cursor: default;
+    height: var(--menu-bar-height);
+    white-space: nowrap;
 }
 
-.menu-bar__brand:hover,
-.menu-bar__brand:focus-visible {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.22);
-    transform: translateY(-1px);
+.brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+.brand-name {
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: inherit;
+}
+
+.page-header__brand-link .brand-logo {
+    width: 40px;
+    height: 40px;
+}
+
+.page-header__brand-link .brand-name {
+    font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .menu-bar__inner {
+        gap: clamp(0.5rem, 2vw, 1rem);
+    }
+
+    .menu-bar__brand {
+        gap: 0.45rem;
+    }
+
+    .menu-bar__brand .brand-logo {
+        width: 24px;
+        height: 24px;
+    }
+
+    .menu-bar__brand .brand-name {
+        font-size: 0.85rem;
+    }
 }
 
 .nav-actions {
