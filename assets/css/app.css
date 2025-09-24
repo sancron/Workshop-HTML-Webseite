@@ -374,17 +374,7 @@ input[type="button"].btn-danger {
 }
 
 .modset-card__actions .btn {
-    width: fit-content;
-    border: 1px solid transparent;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-    border-image: linear-gradient(140deg, rgba(99, 164, 255, 0.55), rgba(160, 177, 255, 0.35)) 1;
-    box-shadow: 0 10px 25px rgba(60, 100, 180, 0.25);
-}
-
-.modset-card__actions .btn:hover,
-.modset-card__actions .btn:focus-visible {
-    border-image: linear-gradient(140deg, rgba(125, 200, 255, 0.75), rgba(180, 195, 255, 0.55)) 1;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+    min-width: 220px;
 }
 
 @media (max-width: 900px) {
@@ -405,6 +395,7 @@ input[type="button"].btn-danger {
 
     .modset-card__actions .btn {
         flex: 1 1 160px;
+        min-width: 0;
         justify-content: center;
     }
 }
