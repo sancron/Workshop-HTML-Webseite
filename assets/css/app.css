@@ -287,9 +287,9 @@ input[type="button"].btn-danger {
 }
 
 .modset-grid {
-    display: grid;
-    gap: clamp(1.5rem, 2.5vw, 2.25rem);
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.5rem, 3vw, 2.5rem);
 }
 
 .modset-card {
@@ -297,6 +297,8 @@ input[type="button"].btn-danger {
     flex-direction: column;
     justify-content: space-between;
     gap: 1.75rem;
+    width: 100%;
+    align-self: stretch;
     padding: clamp(1.5rem, 2.5vw, 2.25rem);
     border-radius: var(--radius-xl);
     border: 1px solid var(--glass-border);
