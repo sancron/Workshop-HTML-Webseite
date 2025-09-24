@@ -108,8 +108,44 @@ if (!isset($_SESSION['authenticated']) || !$_SESSION['authenticated']) {
 $uploadDir = 'html_files/';
 if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
-$existingFiles = glob($uploadDir . '*.html');
-$existingFile = $_POST['existing_file'] ?? ($_GET['edit'] ?? '');
+$existingFiles = array_map('basename', glob($uploadDir . '*.html'));
+
+function normalizeHtmlFilename(?string $value, array $allowedFiles, string $baseDir): string
+{
+    $value = (string) $value;
+    if ($value === '') {
+        return '';
+    }
+
+    $base = basename($value);
+    if ($base === '') {
+        return '';
+    }
+
+    $filename = pathinfo($base, PATHINFO_FILENAME);
+    if ($filename === '') {
+        return '';
+    }
+
+    $normalized = $filename . '.html';
+
+    if ($allowedFiles && !in_array($normalized, $allowedFiles, true)) {
+        return '';
+    }
+
+    if (!is_file($baseDir . $normalized)) {
+        return '';
+    }
+
+    return $normalized;
+}
+
+$existingParam = $_POST['existing_file'] ?? ($_GET['edit'] ?? '');
+$existingFile = normalizeHtmlFilename($existingParam, $existingFiles, $uploadDir);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $_POST['existing_file'] = $existingFile;
+}
 $loadedData = [
     'preset_name' => '',
     'organizer' => '',
@@ -121,8 +157,8 @@ $loadedData = [
 $message = '';
 $messageType = 'success';
 
-if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
-    $fileToDelete = basename($_POST['existing_file']);
+if (isset($_POST['delete']) && $existingFile) {
+    $fileToDelete = $existingFile;
     $htmlPath = $uploadDir . $fileToDelete;
     $jsonPath = $uploadDir . pathinfo($fileToDelete, PATHINFO_FILENAME) . '.json';
 
@@ -131,6 +167,10 @@ if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
 
     $message = "Eintrag <strong>$fileToDelete</strong> erfolgreich gelöscht.";
     $existingFile = '';
+    if (($key = array_search($fileToDelete, $existingFiles, true)) !== false) {
+        unset($existingFiles[$key]);
+        $existingFiles = array_values($existingFiles);
+    }
     $loadedData = array_fill_keys(array_keys($loadedData), '');
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['preset_name'], $_POST['organizer'])) {
     $presetName = htmlspecialchars($_POST['preset_name']);
@@ -144,7 +184,7 @@ if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
     $tmpName = $fileInfo['tmp_name'] ?? '';
     $fileError = $fileInfo['error'] ?? UPLOAD_ERR_NO_FILE;
     $hasUploadedFile = !empty($tmpName) && $fileError === UPLOAD_ERR_OK;
-    $isEdit = !empty($_POST['existing_file']);
+    $isEdit = $existingFile !== '';
 
     if ($fileError !== UPLOAD_ERR_OK && $fileError !== UPLOAD_ERR_NO_FILE) {
         $message = 'Die HTML-Datei konnte nicht hochgeladen werden. Bitte versuche es erneut.';
@@ -153,7 +193,7 @@ if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
         $message = 'Für neue Presets muss eine HTML-Datei hochgeladen werden.';
         $messageType = 'error';
     } else {
-        $finalFileName = $isEdit ? basename($_POST['existing_file']) : $htmlFile;
+        $finalFileName = $isEdit ? $existingFile : basename($htmlFile);
 
         if ($hasUploadedFile && $finalFileName !== '') {
             move_uploaded_file($tmpName, $uploadDir . $finalFileName);
@@ -172,6 +212,9 @@ if (isset($_POST['delete']) && !empty($_POST['existing_file'])) {
 
             $message = $isEdit ? 'Eintrag erfolgreich aktualisiert.' : 'Neuer Eintrag erfolgreich gespeichert.';
             $existingFile = $finalFileName;
+            if (!in_array($finalFileName, $existingFiles, true)) {
+                $existingFiles[] = $finalFileName;
+            }
             $messageType = 'success';
         } else {
             $message = 'Es konnte kein gültiger Dateiname ermittelt werden.';
@@ -234,10 +277,9 @@ if ($existingFile) {
                     <label for="existing_file">Existierenden Eintrag bearbeiten</label>
                     <select name="existing_file" id="existing_file" class="form-select" onchange="loadSelectedFile(this)">
                         <option value="">-- Neue Datei --</option>
-                        <?php foreach ($existingFiles as $file): ?>
-                            <?php $basename = basename($file); ?>
-                            <option value="<?= $basename ?>" <?= ($basename === $existingFile ? 'selected' : '') ?>>
-                                <?= $basename ?>
+                        <?php foreach ($existingFiles as $basename): ?>
+                            <option value="<?= htmlspecialchars($basename) ?>" <?= ($basename === $existingFile ? 'selected' : '') ?>>
+                                <?= htmlspecialchars($basename) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
