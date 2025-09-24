@@ -26,11 +26,11 @@ body.app-body {
     margin: 0;
     min-height: 100vh;
     font-family: 'Inter', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
-    background: var(--bg-gradient), url('../img/background.jpg');
-    background-size: auto, cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background: url('../img/background.jpg'), var(--bg-gradient);
+    background-size: cover, auto;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    background-attachment: fixed, fixed;
     color: var(--text-primary);
     display: flex;
     justify-content: center;
