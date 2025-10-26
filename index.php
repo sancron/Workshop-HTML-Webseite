@@ -6,6 +6,22 @@ $entries = [];
 
 $isAdmin = isset($_SESSION['is_admin']) && $_SESSION['is_admin'] === true;
 
+function buildSearchText(array $parts): string
+{
+    $filtered = array_filter(array_map('strval', $parts), static fn(string $part) => $part !== '');
+    $text = trim(implode(' ', $filtered));
+
+    if ($text === '') {
+        return '';
+    }
+
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($text, 'UTF-8');
+    }
+
+    return strtolower($text);
+}
+
 foreach (glob($uploadDir . '*.json') as $jsonFile) {
     $basename = basename($jsonFile, '.json');
     $htmlPath = $uploadDir . $basename . '.html';
@@ -13,6 +29,15 @@ foreach (glob($uploadDir . '*.json') as $jsonFile) {
     if (!file_exists($htmlPath)) continue;
 
     $data = json_decode(file_get_contents($jsonFile), true);
+    if (!is_array($data)) {
+        $data = [];
+    }
+    $medicalSystem = '';
+    if (is_array($data)) {
+        $medicalSystem = $data['medical_system'] ?? ($data['mediksystem'] ?? '');
+    }
+    $data['medical_system'] = $medicalSystem;
+    $data['mediksystem'] = $medicalSystem;
     $data['preset_name'] = $basename;
     $data['html'] = $htmlPath;
 
@@ -77,7 +102,11 @@ unset($organizerEntries);
             <p class="hero-subtitle">Hier findest du alle aktuell verfügbaren Presets – die Übersicht unten zeigt dir, was gerade bereitsteht.</p>
             <div class="hero-actions">
                 <a href="#modsets" class="btn btn-primary-glass">Modsets entdecken</a>
-                <a href="html_files/" class="btn btn-secondary-glass">Alle Dateien</a>
+                <form class="hero-search" role="search">
+                    <label class="visually-hidden" for="modsetSearch">Modsets durchsuchen</label>
+                    <input type="search" id="modsetSearch" name="modset_search" class="hero-search__input"
+                           placeholder="Modsets durchsuchen..." autocomplete="off" data-search-input>
+                </form>
             </div>
         </div>
     </header>
@@ -95,8 +124,18 @@ unset($organizerEntries);
                         <?php
                             $date = DateTime::createFromFormat('Y-m-d', $entry['date']);
                             $formattedDate = $date ? $date->format('d.m.Y') : htmlspecialchars($entry['date']);
+                            $medicalSystemDisplay = $entry['medical_system'] ?? ($entry['mediksystem'] ?? '');
+                            $searchText = buildSearchText([
+                                $entry['preset_name'] ?? '',
+                                $organizer,
+                                $formattedDate,
+                                $entry['date'] ?? '',
+                                $entry['event'] ?? '',
+                                $entry['funkmod'] ?? '',
+                                $medicalSystemDisplay
+                            ]);
                         ?>
-                        <article class="modset-card glass-card">
+                        <article class="modset-card glass-card" data-search-text="<?= htmlspecialchars($searchText, ENT_QUOTES, 'UTF-8') ?>">
                             <div class="modset-card__row">
                                 <div class="modset-card__info">
                                     <h4 class="modset-card__title"><?= htmlspecialchars($entry['preset_name']) ?></h4>
@@ -106,7 +145,7 @@ unset($organizerEntries);
                                             <p class="modset-card__meta"><span>Event</span><span><?= htmlspecialchars($entry['event']) ?></span></p>
                                         <?php endif; ?>
                                         <p class="modset-card__meta"><span>Funkmod</span><span><?= htmlspecialchars($entry['funkmod']) ?></span></p>
-                                        <p class="modset-card__meta"><span>Mediksystem</span><span><?= htmlspecialchars($entry['mediksystem']) ?></span></p>
+                                        <p class="modset-card__meta"><span>Medical-System</span><span><?= htmlspecialchars($medicalSystemDisplay) ?></span></p>
                                     </div>
                                 </div>
                                 <div class="modset-card__actions">
@@ -122,6 +161,7 @@ unset($organizerEntries);
                 </div>
             </section>
         <?php endforeach; ?>
+        <p class="empty-state" data-search-empty hidden>Keine Presets gefunden. Bitte passe deine Suche an.</p>
     </main>
 </div>
 <script src="assets/js/app.js" defer></script>
