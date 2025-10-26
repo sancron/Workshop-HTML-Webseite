@@ -255,6 +255,30 @@ if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
 
 $existingFiles = array_map('basename', glob($uploadDir . '*.html'));
 
+$knownOrganizers = [];
+foreach ($existingFiles as $htmlFile) {
+    $jsonPath = $uploadDir . pathinfo($htmlFile, PATHINFO_FILENAME) . '.json';
+    if (!is_file($jsonPath)) {
+        continue;
+    }
+
+    $jsonData = json_decode(file_get_contents($jsonPath), true);
+    if (!is_array($jsonData)) {
+        continue;
+    }
+
+    $organizerName = trim((string)($jsonData['organizer'] ?? ''));
+    if ($organizerName !== '') {
+        $knownOrganizers[$organizerName] = true;
+    }
+}
+
+natcasesort($existingFiles);
+$existingFiles = array_values($existingFiles);
+$knownOrganizers = array_keys($knownOrganizers);
+natcasesort($knownOrganizers);
+$knownOrganizers = array_values($knownOrganizers);
+
 function normalizeHtmlFilename(?string $value, array $allowedFiles, string $baseDir): string
 {
     $value = (string) $value;
@@ -323,12 +347,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $formType === 'modset') {
     $_POST['existing_file'] = $existingFile;
 }
 $loadedData = [
-    'preset_name' => '',
     'organizer' => '',
     'date' => '',
     'event' => '',
     'funkmod' => '',
-    'mediksystem' => ''
+    'medical_system' => ''
 ];
 $message = '';
 $messageType = 'success';
@@ -348,13 +371,12 @@ if ($formType === 'modset' && isset($_POST['delete']) && $existingFile) {
         $existingFiles = array_values($existingFiles);
     }
     $loadedData = array_fill_keys(array_keys($loadedData), '');
-} elseif ($formType === 'modset' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['preset_name'], $_POST['organizer'])) {
-    $presetName = htmlspecialchars($_POST['preset_name']);
-    $organizer = htmlspecialchars($_POST['organizer']);
-    $date = htmlspecialchars($_POST['date']);
-    $event = htmlspecialchars($_POST['event'] ?? '');
-    $funkmod = htmlspecialchars($_POST['funkmod']);
-    $mediksystem = htmlspecialchars($_POST['mediksystem']);
+} elseif ($formType === 'modset' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['organizer'])) {
+    $organizer = htmlspecialchars(trim((string)$_POST['organizer']));
+    $date = htmlspecialchars(trim((string)($_POST['date'] ?? '')));
+    $event = htmlspecialchars(trim((string)($_POST['event'] ?? '')));
+    $funkmod = htmlspecialchars(trim((string)($_POST['funkmod'] ?? '')));
+    $medicalSystem = htmlspecialchars(trim((string)($_POST['medical_system'] ?? ($_POST['mediksystem'] ?? ''))));
     $fileInfo = $_FILES['html_file'] ?? ['name' => '', 'tmp_name' => '', 'error' => UPLOAD_ERR_NO_FILE];
     $htmlFile = $fileInfo['name'] ?? '';
     $tmpName = $fileInfo['tmp_name'] ?? '';
@@ -368,6 +390,9 @@ if ($formType === 'modset' && isset($_POST['delete']) && $existingFile) {
     } elseif (!$isEdit && !$hasUploadedFile) {
         $message = 'Für neue Presets muss eine HTML-Datei hochgeladen werden.';
         $messageType = 'error';
+    } elseif ($organizer === '' || $date === '' || $funkmod === '' || $medicalSystem === '') {
+        $message = 'Bitte fülle alle Pflichtfelder aus.';
+        $messageType = 'error';
     } else {
         $finalFileName = $isEdit ? $existingFile : basename($htmlFile);
 
@@ -376,13 +401,16 @@ if ($formType === 'modset' && isset($_POST['delete']) && $existingFile) {
         }
 
         if ($finalFileName !== '') {
-            $jsonData = json_encode([
+            $payload = [
                 'organizer' => $organizer,
                 'date' => $date,
                 'event' => $event,
                 'funkmod' => $funkmod,
-                'mediksystem' => $mediksystem
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                'medical_system' => $medicalSystem,
+                'mediksystem' => $medicalSystem
+            ];
+
+            $jsonData = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
             file_put_contents($uploadDir . pathinfo($finalFileName, PATHINFO_FILENAME) . '.json', $jsonData);
 
@@ -390,6 +418,13 @@ if ($formType === 'modset' && isset($_POST['delete']) && $existingFile) {
             $existingFile = $finalFileName;
             if (!in_array($finalFileName, $existingFiles, true)) {
                 $existingFiles[] = $finalFileName;
+                natcasesort($existingFiles);
+                $existingFiles = array_values($existingFiles);
+            }
+            if ($organizer !== '' && !in_array($organizer, $knownOrganizers, true)) {
+                $knownOrganizers[] = $organizer;
+                natcasesort($knownOrganizers);
+                $knownOrganizers = array_values($knownOrganizers);
             }
             $messageType = 'success';
         } else {
@@ -403,12 +438,31 @@ if ($existingFile) {
     $jsonPath = $uploadDir . pathinfo($existingFile, PATHINFO_FILENAME) . '.json';
     if (file_exists($jsonPath)) {
         $jsonData = json_decode(file_get_contents($jsonPath), true);
-        $loadedData = array_merge($loadedData, $jsonData);
+        if (is_array($jsonData)) {
+            $loadedData['organizer'] = $jsonData['organizer'] ?? $loadedData['organizer'];
+            $loadedData['date'] = $jsonData['date'] ?? $loadedData['date'];
+            $loadedData['event'] = $jsonData['event'] ?? $loadedData['event'];
+            $loadedData['funkmod'] = $jsonData['funkmod'] ?? $loadedData['funkmod'];
+            if (isset($jsonData['medical_system'])) {
+                $loadedData['medical_system'] = $jsonData['medical_system'];
+            } elseif (isset($jsonData['mediksystem'])) {
+                $loadedData['medical_system'] = $jsonData['mediksystem'];
+            }
+        }
     }
-    $loadedData['preset_name'] = pathinfo($existingFile, PATHINFO_FILENAME);
 }
 
-$isPresetLocked = $existingFile !== '';
+$currentPresetName = $existingFile ? pathinfo($existingFile, PATHINFO_FILENAME) : '';
+
+$funkmodOptions = ['Ohne', 'ACRE', 'TFAR'];
+if ($loadedData['funkmod'] !== '' && !in_array($loadedData['funkmod'], $funkmodOptions, true)) {
+    $funkmodOptions[] = $loadedData['funkmod'];
+}
+
+$medicalSystemOptions = ['Vanilla', 'ACE', 'KAT', 'ACM'];
+if ($loadedData['medical_system'] !== '' && !in_array($loadedData['medical_system'], $medicalSystemOptions, true)) {
+    $medicalSystemOptions[] = $loadedData['medical_system'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -515,20 +569,30 @@ $isPresetLocked = $existingFile !== '';
                     </select>
                 </div>
 
-                <div class="form-grid form-grid--two">
+                <?php if ($currentPresetName): ?>
                     <div class="form-group">
-                        <label for="preset_name">
-                            Preset-Name (Dateiname)
-                        </label>
-                        <input type="text" name="preset_name" id="preset_name" class="form-control<?= $isPresetLocked ? ' is-readonly' : '' ?>" required
-                               value="<?= htmlspecialchars($loadedData['preset_name']) ?>"
-                               <?= $isPresetLocked ? 'readonly' : '' ?>>
+                        <label>Aktuelle Preset-Datei</label>
+                        <p class="status-text"><strong><?= htmlspecialchars($currentPresetName) ?></strong> (Dateiname)</p>
+                        <p class="status-text">Der Dateiname bestimmt automatisch den angezeigten Preset-Namen.</p>
                     </div>
+                <?php endif; ?>
 
+                <div class="form-grid form-grid--two">
                     <div class="form-group">
                         <label for="organizer">Veranstalter</label>
                         <input type="text" name="organizer" id="organizer" class="form-control" required
-                               value="<?= htmlspecialchars($loadedData['organizer']) ?>">
+                               value="<?= htmlspecialchars($loadedData['organizer']) ?>"
+                               list="organizer-list" placeholder="Veranstalter auswählen oder hinzufügen">
+                        <datalist id="organizer-list">
+                            <?php foreach ($knownOrganizers as $knownOrganizer): ?>
+                                <option value="<?= htmlspecialchars($knownOrganizer) ?>"></option>
+                            <?php endforeach; ?>
+                        </datalist>
+                        <?php if ($knownOrganizers): ?>
+                            <p class="status-text">Bereits bekannte Veranstalter stehen als Auswahl zur Verfügung.</p>
+                        <?php else: ?>
+                            <p class="status-text">Lege bei Bedarf neue Veranstalter durch Eingabe fest.</p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="form-group">
@@ -547,18 +611,19 @@ $isPresetLocked = $existingFile !== '';
                         <label for="funkmod">Funkmod</label>
                         <select name="funkmod" id="funkmod" class="form-select" required>
                             <option value="">-- auswählen --</option>
-                            <option value="ACRE" <?= $loadedData['funkmod'] === 'ACRE' ? 'selected' : '' ?>>ACRE</option>
-                            <option value="TFAR" <?= $loadedData['funkmod'] === 'TFAR' ? 'selected' : '' ?>>TFAR</option>
+                            <?php foreach ($funkmodOptions as $option): ?>
+                                <option value="<?= htmlspecialchars($option) ?>" <?= $loadedData['funkmod'] === $option ? 'selected' : '' ?>><?= htmlspecialchars($option) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="mediksystem">Mediksystem</label>
-                        <select name="mediksystem" id="mediksystem" class="form-select" required>
+                        <label for="medical_system">Medical-System</label>
+                        <select name="medical_system" id="medical_system" class="form-select" required>
                             <option value="">-- auswählen --</option>
-                            <option value="Vanilla" <?= $loadedData['mediksystem'] === 'Vanilla' ? 'selected' : '' ?>>Vanilla</option>
-                            <option value="ACE" <?= $loadedData['mediksystem'] === 'ACE' ? 'selected' : '' ?>>ACE</option>
-                            <option value="KAT" <?= $loadedData['mediksystem'] === 'KAT' ? 'selected' : '' ?>>KAT</option>
+                            <?php foreach ($medicalSystemOptions as $option): ?>
+                                <option value="<?= htmlspecialchars($option) ?>" <?= $loadedData['medical_system'] === $option ? 'selected' : '' ?>><?= htmlspecialchars($option) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -566,7 +631,7 @@ $isPresetLocked = $existingFile !== '';
                 <div class="form-group">
                     <label for="html_file">HTML-Datei (optional zum Ersetzen)</label>
                     <input type="file" name="html_file" id="html_file" class="form-control">
-                    <div class="alert alert-info">Für neue Presets ist eine HTML-Datei zwingend erforderlich.</div>
+                    <div class="alert alert-info">Für neue Presets ist eine HTML-Datei zwingend erforderlich. Der Dateiname der Datei wird automatisch als Preset-Name verwendet.</div>
                     <p class="status-text">Lade nur eine Datei hoch, wenn du den bestehenden Inhalt ersetzen möchtest.</p>
                 </div>
 
