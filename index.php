@@ -73,8 +73,8 @@ unset($organizerEntries);
 <div class="app-wrapper">
     <header class="hero">
         <div class="hero-content">
-            <h1 class="hero-title">Deine zentrale Sammlung für Arma-Modsets</h1>
-            <p class="hero-subtitle">Durchstöbere kuratierte Presets, erfahre alle Details und starte direkt in die nächste Mission.</p>
+            <h1 class="hero-title">Modsets für Missionen &amp; Events der virtuellen Panzerbrigade 21</h1>
+            <p class="hero-subtitle">Hier findest du alle aktuell verfügbaren Presets – die Übersicht unten zeigt dir, was gerade bereitsteht.</p>
             <div class="hero-actions">
                 <a href="#modsets" class="btn btn-primary-glass">Modsets entdecken</a>
                 <a href="html_files/" class="btn btn-secondary-glass">Alle Dateien</a>
